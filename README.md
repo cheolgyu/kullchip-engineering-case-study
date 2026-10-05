@@ -6,7 +6,7 @@
 
 이 저장소는 출시된 제품의 전체 소스가 아닙니다. 비공개 원본 저장소의 `kullchip-8.1.0-sealed` 기준에서 개인정보, 위치 원본, 인증정보, 내부 프롬프트와 생성 산출물을 제외하고 **설계 판단·대표 구현·검증 결과만 선별한 공개 포트폴리오**입니다.
 
-[English summary](README.en.md) · [10분 워크스루](docs/06-walkthrough.md) · [소스 리뷰 가이드](docs/08-source-review-guide.md) · [주장 범위](docs/07-claims-boundary.md)
+[English summary](README.en.md) · [선별 소스 설명](docs/07-selected-source-notes.md) · [주장 범위](docs/06-claims-boundary.md)
 
 ## 한눈에 보기
 
@@ -102,7 +102,7 @@ ColaZZang은 KullChip과 동일한 Git 코드베이스가 아니라 선행 프�
 4. GNSS anchor와 IMU motion을 결합하는 PDR 후보 및 테스트
 5. 최대 500건 page, retention gap, version lane, 단조 cursor ACK를 보여 주는 [독립 Rust bounded-sync 예제](examples/bounded-sync/README.md)
 
-Kotlin 파일들은 전체 앱을 재빌드하기 위한 배포본이 아니라, 설계와 테스트 방식을 검토하기 위한 **source snapshot**입니다. 원본 경로와 blob SHA는 [manifest](evidence/selected-source/manifest.csv)에 기록합니다. Rust 예제는 원본 운영 코드를 복사하지 않고 합성 식별자만으로 재구성했으며 독립적으로 빌드·테스트됩니다. 어디부터 읽어야 하는지는 [소스 리뷰 가이드](docs/08-source-review-guide.md)에 정리했습니다.
+Kotlin 파일들은 전체 앱을 재빌드하기 위한 배포본이 아니라, 설계와 테스트 방식을 검토하기 위한 **source snapshot**입니다. 원본 경로와 blob SHA는 [manifest](evidence/selected-source/manifest.csv)에 기록합니다. Rust 예제는 원본 운영 코드를 복사하지 않고 합성 식별자만으로 재구성했으며 독립적으로 빌드·테스트됩니다. 파일별 공개 범위는 [선별 소스 설명](docs/07-selected-source-notes.md)에 정리했습니다.
 
 ## 이 저장소가 주장하지 않는 것
 
@@ -113,7 +113,7 @@ Kotlin 파일들은 전체 앱을 재빌드하기 위한 배포본이 아니라,
 - KullChip 전체 코드를 AI 없이 단독 작성했다는 주장
 - LanceDB·Local Lake·OLAP·Gemma가 최종 제품 런타임에서 운영됐다는 주장
 
-자세한 경계는 [주장 범위](docs/07-claims-boundary.md)에 명시했습니다.
+자세한 경계는 [주장 범위](docs/06-claims-boundary.md)에 명시했습니다.
 
 ## 저장소 안전 원칙
 

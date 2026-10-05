@@ -20,5 +20,5 @@ event before acknowledging it.
 
 ```sh
 cargo test --workspace
-cargo run -p bounded-sync-core --example walkthrough
+cargo run -p bounded-sync-core --example demo
 ```

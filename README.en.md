@@ -15,4 +15,4 @@ The project combined Kotlin/Compose/Room on Android and Wear OS, a Rust gRPC/Pos
 - a dependency-free, runnable Rust reconstruction of bounded delta-sync policy;
 - an explicit decision to stop when observability, data, and stability were insufficient.
 
-See the [Korean README](README.md), [architecture](docs/02-architecture.md), [validation results](docs/03-validation.md), [bounded-sync example](examples/bounded-sync/README.md), and [claim boundaries](docs/07-claims-boundary.md).
+See the [Korean README](README.md), [architecture](docs/02-architecture.md), [validation results](docs/03-validation.md), [bounded-sync example](examples/bounded-sync/README.md), and [claim boundaries](docs/06-claims-boundary.md).

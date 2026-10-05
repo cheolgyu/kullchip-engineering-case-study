@@ -8,4 +8,4 @@
 - 원본 경로, source blob SHA와 공개 snapshot blob SHA는 `manifest.csv`에 기록합니다. 선별 파일은 원본 blob과 byte-identical입니다.
 - 파일 자체의 설계 검토가 목적이며 이 디렉터리만으로 전체 앱을 빌드할 수 있다고 주장하지 않습니다.
 
-검토 순서와 각 파일에서 확인할 설계 불변식은 [소스 리뷰 가이드](../../docs/08-source-review-guide.md)를 참고하십시오.
+각 파일의 공개 범위와 설계 불변식은 [선별 소스 설명](../../docs/07-selected-source-notes.md)을 참고하십시오.
