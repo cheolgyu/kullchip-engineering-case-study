@@ -1,0 +1,42 @@
+{
+  "schema": "kullchip-public-aggregate-metrics-v1",
+  "source_revision": "4bbc34caf7686badf16250a2395977e5f16215e7",
+  "sealed_version": "8.1.0",
+  "privacy": "aggregate-only; no coordinates, timestamps, user IDs, pet IDs, or raw samples",
+  "dataset_snapshot": {
+    "walks": 10,
+    "imu_rows": 1642362,
+    "pet_gnss_rows": 31081,
+    "user_axis_labels": 749,
+    "episodes": 16
+  },
+  "pdr_hidden_gnss": {
+    "five_seconds": {
+      "segments": 1661,
+      "median_m": 1.34,
+      "p95_m": 5.91,
+      "fixed_position_median_m": 2.73,
+      "fixed_position_p95_m": 9.92,
+      "last_velocity_median_m": 1.53,
+      "last_velocity_p95_m": 6.87
+    },
+    "ten_seconds": {
+      "segments": 825,
+      "median_m": 2.33,
+      "p95_m": 10.99,
+      "fixed_position_median_m": 5.30,
+      "fixed_position_p95_m": 16.78,
+      "last_velocity_median_m": 3.29,
+      "last_velocity_p95_m": 13.91
+    },
+    "verdict": "KEEP_CANDIDATE_NOT_PRODUCT_AUTHORITY"
+  },
+  "ml1_untouched_authority": {
+    "movement_macro_f1": 0.14,
+    "oral_macro_f1": 0.07,
+    "verdict": "NO_MEASURED_PRODUCT_VALUE"
+  },
+  "ml2": {
+    "verdict": "INSUFFICIENT_DISJOINT_TRAIN_HOLDOUT_AND_EVENT_COUNTS"
+  }
+}
