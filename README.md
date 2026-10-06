@@ -2,7 +2,7 @@
 
 [![public-case-study-safety](https://github.com/cheolgyu/kullchip-engineering-case-study/actions/workflows/safety.yml/badge.svg)](https://github.com/cheolgyu/kullchip-engineering-case-study/actions/workflows/safety.yml)
 
-> ColaZZang에서 실제 산책 기록 흐름을 구현하며 확인한 병목을 KullChip에서 RAW-first, 단일 런타임 소유자, Wear spool/ACK 구조로 다시 설계하고, 끝내 제품 기준을 통과하지 못한 자동 추론은 차단한 엔지니어링 사례입니다.
+> ColaZZang은 휴대폰·Wear OS로 반려견 산책의 경로·시간·걸음·이력을 기록하는 local-first 앱입니다. KullChip은 사람·반려견 시계의 GNSS·IMU 수집과 온디바이스 ML0/ML1/ML2까지 확장해 clean-room으로 다시 설계한 후속 프로젝트이며, 제품 기준을 통과하지 못한 자동 추론은 최종 앱에서 차단했습니다.
 
 이 저장소는 출시 제품의 전체 소스가 아닙니다. 비공개 원본 저장소의 **kullchip-8.1.0-sealed** 기준에서 개인정보, 위치 원본, 인증정보, 내부 프롬프트와 생성 산출물을 제외하고 설계 판단·대표 구현·집계 검증 결과만 선별한 공개 포트폴리오입니다.
 
@@ -13,7 +13,7 @@
 | 항목 | ColaZZang | KullChip 8.1 |
 |---|---|---|
 | 개발 기간 | 2025.02–2026.01 | 2026.03–2026.08 |
-| 목적 | 휴대폰·Wear OS 기반 반려견 산책 기록 | 휴대폰·사람 시계·반려견 시계의 센서 수집과 행동·위치 해석 |
+| 사용자가 하는 일 | 휴대폰·손목 시계로 산책을 제어하고 경로·시간·걸음·이력을 확인 | 휴대폰으로 산책·기억·일기·리포트를 보고, 선택적으로 사람/반려견 시계 센서를 연결 |
 | 실행 환경 | Android Phone + Wear OS | Android Product App + Model Lab + Wear + Mobile Runtime |
 | 원시 데이터 | 위치·걸음·랩을 Room에 직접 기록 | RAW를 Room 트랜잭션에 먼저 저장한 뒤 파생 처리 |
 | Wear 동기화 | Data Layer 요청과 상태 목록 재전송 | bounded spool, session/sequence lineage, durable commit 이후 ACK |
@@ -52,7 +52,7 @@ KullChip에서는 AI coding agent를 구현·리팩터링·테스트·리뷰 가
 
 ### 실행 환경과 모듈
 
-ColaZZang은 Android 휴대폰과 Wear OS 시계를 함께 사용하는 local-first 산책 기록 앱이었습니다.
+ColaZZang은 보호자가 휴대폰이나 자신의 Wear OS 시계에서 산책을 시작·일시정지·저장하고, 산책 중에는 경로·시간·걸음·lap을 확인하며, 끝난 뒤에는 달력·지도·차트로 기록을 다시 보는 local-first 산책 앱이었습니다. 반려견 행동을 자동 판정하는 AI 앱이 아니라, 산책 기록과 Phone/Wear 제어를 먼저 끝까지 연결한 선행 제품이었습니다.
 
 | 영역 | 구성 |
 |---|---|
@@ -136,7 +136,9 @@ ColaZZang의 가치는 이 문제들을 숨기지 않고 다음 아키텍처의 
 
 ### 목표와 실행 환경
 
-KullChip의 목표는 산책을 다음 폐쇄 루프로 만드는 것이었습니다.
+KullChip은 보호자가 휴대폰에서 반려견 산책을 기록하고, 필요하면 자신의 시계와 반려견에게 부착한 Wear OS 시계의 GNSS·IMU를 함께 받아 관측 경로, 확인한 기억, 일기·사진 일기와 리포트를 보는 앱으로 재설계했습니다. 자동 몸짓·배변 전조·상대 위치는 사용자가 직접 확인하지 않아도 의미 있는 정보를 주기 위한 실험이었지만, 최종 8.1에서는 제품 기준을 통과하지 못해 일반 사용자 화면에서 차단했습니다.
+
+기술적 목표는 산책을 다음 폐쇄 루프로 만드는 것이었습니다.
 
 ~~~text
 산책
@@ -166,8 +168,9 @@ KullChip의 목표는 산책을 다음 폐쇄 루프로 만드는 것이었습�
 |---|---|---|
 | 관측 사실 | GNSS 산책 이력, 시간·속도 구성, 사용자 확인 marker | 제품 사실로 보존 |
 | 로컬 제품 화면 | 지도, 이력, 일기·사진 일기, report, life-grid projection | 구현 경계 존재 |
-| 결정론적 파생 | ML0 몸축 변환, PDR | Model Lab 후보 |
-| 학습 후보 | ML1 행동 축, ML2 사건 후보 | 제품 권한 없음 |
+| 결정론적 변환 | ML0 몸축 변환 | 공통 phone pipeline에서 생성하되 행동 의미를 부여하지 않음 |
+| 경로 후보 | Motion model과 PDR | Model Lab 진단만 허용, 제품 경로 권한 없음 |
+| 학습 후보 | ML1 atomic axes, ML2 episode 후보 | Model Lab에서만 후보 실행, 제품 권한 없음 |
 | 상대 위치 | 두 GNSS와 IMU 기반 pet relative navigation | 제품 모드 비활성 |
 | 소셜 | walk-room과 공유 기능 | 최종 durable contract 미구현 |
 | 원격 갱신 | public marker refresh, hosted weather writer | 최종 런타임 비활성 |
@@ -186,13 +189,16 @@ flowchart TD
     G -->|commit success| H[Wear ACK]
     G --> I[SensorDerivationOwner]
     I --> J[Observed GNSS route]
-    I --> K[ML0 body-frame feature]
-    K --> L[PDR candidate]
-    K --> M[ML1 candidate]
-    M --> N[ML2 candidate]
+    I --> K[ML0 deterministic body frame]
+    K --> L[Motion distance model]
+    L --> S[PDR candidate]
+    K --> M[ML1 six body axes]
+    K --> T[ML1 leash head]
+    M --> N[ML2 32-frame episode candidate]
     J --> O[(Room product projection)]
-    L --> P{Product-value gate}
+    S --> P{Product-value gate}
     M --> P
+    T --> P
     N --> P
     P -->|certified| O
     P -->|not certified| Q[Model Lab only]
@@ -221,6 +227,61 @@ STOP_REQUESTED
 ~~~
 
 배터리 온도 40°C 이상 또는 Android thermal 상태가 MODERATE 이상일 때 작업을 제한하는 로컬 thermal circuit breaker도 두었습니다. 다만 마지막 봉인 시점까지 비충전 2시간 실기기 필드 기준과 모든 단절·복구 조합을 통과하지는 못했습니다.
+
+### 온디바이스 ML0 → PDR / ML1 → ML2
+
+여기서 **온디바이스**는 모델이 반려견 시계에서 돈다는 뜻이 아닙니다. 반려견 시계는 GNSS·가속도·자이로와 선택적 회전 벡터를 수집해 spool로 보낼 뿐이며 Room, TFLite/LiteRT, 학습 정책과 제품 판정은 갖지 않습니다. 휴대폰의 **SensorIngressOwner**가 RAW를 Room에 commit한 뒤 **SensorDerivationOwner**와 **ModelComputeOwner**가 ML0, Motion/PDR, ML1, ML2를 실행합니다. 학습 가능한 head의 미세조정과 checkpoint 저장도 휴대폰에서 수행합니다.
+
+아래의 `50×6`, 몸축 정렬, `27×32` 계약과 세부 평가 수치는 비공개 봉인 태그 **kullchip-8.1.0-sealed**의 코드·검증 보고서를 다시 대조한 요약입니다. 공개 `selected-source`에는 개인정보·RAW와 함께 전체 feature assembler, normalizer, ML2 구현을 포함하지 않았으므로, 공개본만으로 모델 pipeline 전체를 재현할 수 있다고 주장하지 않습니다.
+
+#### 입력 창 gate
+
+모델 앞단은 단순히 IMU 50개를 묶지 않습니다. 같은 walk·pet·source session의 decode된 **PET_WATCH_IMU**만 사용하고, 연속 sequence, 단조 증가 timestamp, 45~55 Hz 유효 cadence와 최대 60 ms 표본 간격을 만족한 50개를 1초 창으로 승인합니다. malformed packet, sequence gap, 시간 역전, cadence 이탈, 큰 간격과 종료 시 불완전 창은 사유와 lineage를 남기고 거부합니다. 거부는 RAW 삭제나 50 Hz 보간을 뜻하지 않습니다.
+
+| 단계 | 휴대폰 입력 | 처리와 출력 | 제품 권한 경계 |
+|---|---|---|---|
+| ML0 | 승인된 1초 50×6 가속도·자이로 창, 중력 기준, 사용 가능하면 회전 벡터와 GNSS heading | 50×6을 forward/right/up 가속도와 각속도로 회전. alignment mode·coverage·quality·RAW/feature hash를 함께 저장 | 학습 분류가 아닌 결정론적 변환. 구조적으로 유효한 움직임을 noise로 버리지 않으며 행동 이름이나 제품 사실을 만들지 않음 |
+| Motion | ML0 50×6 몸축 tensor와 실제 pet GNSS/PDR anchor | 별도 TFLite가 1초 이동 거리만 추론. gyro yaw와 causal GNSS speed를 결합해 50개 motion frame 생성 | 정확한 artifact certificate와 제품 가치 certificate가 없으면 **MOTION_MODEL_UNAVAILABLE**로 차단 |
+| PDR | 권위가 확인된 Motion frame과 실제 pet GNSS 위치·bearing anchor | anchor에서 forward/right 이동량을 적분하고 위치·누적거리·accuracy·drift state 생성 | ML1과 독립. Motion 권한이 없거나 heading/GNSS anchor가 없으면 좌표를 발명하지 않음. 후보는 Model Lab 진단만 가능 |
+| ML1 몸짓 | ML0 50×6 tensor | 공통 backbone/TFLite를 한 번 실행해 여섯 atomic axis의 26개 확률, 선택 class와 confidence 생성 | 축마다 label·checkpoint·holdout·승격 권한이 독립. 제품 준비 상태는 여섯 몸짓 축과 leash까지 일곱 축 모두의 현재 artifact/checkpoint/value certificate를 요구 |
+| ML1 leash | 같은 ML0 50×6 tensor | 독립 head가 loose/neutral/taut/pulling/sudden tug 관계 확률 생성 | 장력 센서 측정값이 아니라 사용자 확정 구간을 학습한 관계 후보. PDR이나 ML2 입력으로 사용하지 않음 |
+| ML2 | 같은 시점 ML1 몸짓 26개 확률+불확실도 1개로 만든 27차원 frame 32개 | 약 32초의 순서를 TFLite가 읽어 poop preparation, pee preparation, none 점수와 confidence 생성 | 결과 marker·미래 정답·leash는 입력에서 제외. 상류 ML1 지문과 pet별 ML2 checkpoint/value certificate가 모두 일치할 때만 제품 의미 허용 |
+
+ML0의 두 정렬 경로는 다음과 같습니다.
+
+- 50개 표본 모두에 유효한 quaternion이 있고 GNSS heading이 있으면 world 좌표를 heading 기준의 몸축으로 회전합니다.
+- 그렇지 않으면 중력 방향을 up으로, 장착 기준을 forward/right로 만든 gravity/mount fallback을 사용합니다.
+- 어느 경로를 썼는지, quaternion coverage와 alignment quality를 메타데이터에 남깁니다. fallback을 사용했다는 사실을 숨기지 않습니다.
+- ML0 출력은 Motion/PDR과 ML1에 독립적으로 전달됩니다. ML1 실패가 PDR을 막거나 PDR 결과가 ML1 class를 바꾸지 않습니다.
+
+여기서 **몸축**은 반려견의 해부학적 forward/right/up을 독립 측정 장비로 입증한 절대 정답이 아닙니다. 8.1이 보장한 것은 quaternion·GNSS heading 또는 중력·장착 가정으로 같은 RAW를 같은 50×6 좌표계에 재현하고, 사용한 정렬 방식과 품질을 추적하는 것입니다. 실제 몸 방향과의 오차는 별도 ground truth가 부족했으므로 ML0 결정성이나 회전 불변식 통과를 물리적 정렬 정확도 또는 행동 정확도로 확대하지 않습니다.
+
+ML1의 **atomic axis**는 한 행동 이름으로 모든 것을 덮어쓰지 않기 위한 분해입니다.
+
+| Axis | Class |
+|---|---|
+| movement | stop, slow walk, walk, run |
+| posture | neutral, sit, down, roll over, rear up |
+| head | forward, back, left, right, up, down |
+| event | shake, scratch, circle, body rub, none |
+| nose | sniffing, none |
+| oral | chewing, drinking, panting, none |
+| leash | loose, neutral, taut, pulling, sudden tug |
+
+앞의 여섯 몸짓 축은 한 physical runtime과 공통 backbone을 사용하지만 label, checkpoint와 합격 여부는 축별로 분리합니다. leash는 같은 ML0 tensor를 읽는 독립 head입니다. 각 inference에는 model ID, artifact SHA, checkpoint ID, weights SHA와 feature hash를 연결해 “어떤 입력을 어떤 weights가 해석했는지”를 남깁니다.
+
+ML2는 **사건이 이미 일어났다는 판정**이 아니라 사건 직전의 시간 패턴 후보입니다. 한 frame은 여섯 몸짓 축의 26개 실제 확률과 평균 불확실도 1개이며, 서로 다른 32개 시간창을 순서대로 사용합니다. 사용자가 산책 marker에서 POOP 또는 PEE를 확정하면 그 결과는 앞선 32개 frame에 학습 target을 붙이는 데만 쓰고 예측 입력에는 넣지 않습니다. 사건 주변을 제외한 none 구간도 별도 음성 예제로 필요합니다.
+
+제품 승격은 단계별로 fail-closed합니다.
+
+1. RAW와 feature window의 source/session/sequence/count/hash가 맞아야 합니다.
+2. 모델 artifact ID·version·SHA와 feature schema가 실행 계약과 같아야 합니다.
+3. ML1 각 축은 pet별로 정확히 하나의 **PRODUCT_ACTIVE** checkpoint와 weights hash를 가져야 합니다.
+4. ML2의 32개 frame은 같은 ML1 artifact 세대여야 하며, 여섯 몸짓 checkpoint로 만든 동일한 upstream authority fingerprint를 가져야 합니다.
+5. ML2 checkpoint도 같은 pet·artifact·upstream fingerprint에 묶인 **PRODUCT_ACTIVE** 상태여야 합니다.
+6. 마지막으로 walk 단위 train/holdout 분리, 누출 0, 단순 baseline 우위, 시간 안정성, field·thermal gate를 포함한 8.1 제품 가치 certificate가 필요합니다.
+
+Model Lab은 제품 지문이 없는 한 후보 세대와 **AWAITING_HOLDOUT** checkpoint를 명시적으로 선택해 진단할 수 있습니다. Product App은 선택된 제품 checkpoint와 certificate가 없으면 Motion/PDR/ML1/ML2를 실행하거나 projection에 올리지 않습니다. 후보 context를 Room에 보존하는 것은 학습 lineage일 뿐 제품 의미 승격이 아닙니다.
 
 ### 저장·권한 경계
 
@@ -310,19 +371,29 @@ Android / Admin Web
 
 ### ML1/ML2: 제품 가치 기준 실패
 
+먼저 기존 label window에서 신호 분리 가능성을 본 historical probe는 다음과 같았습니다. 이 수치는 아래의 untouched authority 산책 결과와 다른 평가 단계입니다.
+
+| Axis | Probe macro-F1 / 다수 class baseline | 같은 정답 구간 상태 반전/시간 | 판단 |
+|---|---:|---:|---|
+| movement | 0.47 / 0.16 | 794.06 | 신호는 있으나 시간 불안정 |
+| posture | 0.45 / 0.30 | 587.66 | 신호는 있으나 시간 불안정 |
+| oral | 0.33 / 0.18 | 806.05 | 신호는 있으나 시간 불안정 |
+| head | 0.18 / 0.08 | 875.73 | 산책별 일관성 부족 |
+| event | 0.22 / 0.29 | 1,200.23 | baseline보다 낮음 |
+| nose | 0.97 / 1.00 | 94.91 | 높은 수치지만 baseline 우위 없음 |
+
+봉인 8.1 APK와 byte-identical한 artifact를 train 2산책, validation 1산책, untouched authority 1산책으로 다시 평가한 결과는 더 낮았습니다.
+
 | 항목 | 측정 | 판단 |
 |---|---:|---|
-| ML1 movement untouched walk macro-F1 | 0.14 | 제품 가치 주장 불가 |
-| ML1 oral untouched walk macro-F1 | 0.07 | 제품 가치 주장 불가 |
-| movement 상태 반전 | 시간당 794회 | 시간 안정성 실패 |
-| posture 상태 반전 | 시간당 588회 | 시간 안정성 실패 |
-| oral 상태 반전 | 시간당 806회 | 시간 안정성 실패 |
-| event F1 | 0.22, baseline 0.29 | baseline보다 낮음 |
-| nose F1 | 0.97, baseline 1.00 | 높은 수치지만 baseline 우위 없음 |
-| ML2 pee | 5건 / 4회 산책 | 독립 split 불가 |
-| ML2 poop | 1건 / 1회 산책 | 가치 평가 불가 |
+| movement untouched walk macro-F1 | 0.14 | 제품 가치 주장 불가 |
+| oral untouched walk macro-F1 | 0.07 | 제품 가치 주장 불가 |
+| movement untouched 상태 반전 | 시간당 93.12회 | 60회 기준 초과 |
+| posture untouched 정답 | 0개 | 평가 불가 |
+| ML2 확정 pee | 5건 / 4회 산책 | 독립 split 불가 |
+| ML2 확정 poop | 1건 / 1회 산책 | 가치 평가 불가 |
 
-높은 단일 지표도 단순 baseline을 이기지 못하면 제품 가치로 인정하지 않았습니다. ML2는 독립 train/holdout과 candidate timeline을 만들 표본 자체가 부족했습니다.
+따라서 794.06회와 93.12회는 모순되는 동일 지표가 아니라 **historical probe와 untouched authority 평가의 서로 다른 집계**입니다. 높은 단일 지표도 단순 baseline을 이기지 못하면 제품 가치로 인정하지 않았습니다. ML2는 32-frame 문맥은 만들 수 있었지만 독립 train/holdout과 전체 산책 candidate score timeline이 없어 탐지율·선행시간·시간당 오경보를 계산할 수 없었습니다.
 
 [기계 판독용 공개 집계](evidence/validation/metrics.json)에는 식별정보 없는 dataset과 PDR·ML1 핵심 수치만 담았습니다. 원본 봉인 문서의 전체 판단은 [검증 해설](docs/03-validation.md)에 요약했습니다.
 
